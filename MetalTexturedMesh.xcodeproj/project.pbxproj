@@ -1,0 +1,315 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		833681371D02A5DF0096C63A /* AAPLMathUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = 8336812F1D02A5DF0096C63A /* AAPLMathUtilities.m */; };
+		833681381D02A5DF0096C63A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833681301D02A5DF0096C63A /* AppDelegate.swift */; };
+		833681391D02A5DF0096C63A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 833681321D02A5DF0096C63A /* Images.xcassets */; };
+		8336813A1D02A5DF0096C63A /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833681331D02A5DF0096C63A /* Mesh.swift */; };
+		8336813B1D02A5DF0096C63A /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833681341D02A5DF0096C63A /* Renderer.swift */; };
+		8336813C1D02A5DF0096C63A /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 833681351D02A5DF0096C63A /* Shaders.metal */; };
+		8336813D1D02A5DF0096C63A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833681361D02A5DF0096C63A /* ViewController.swift */; };
+		833681401D02A5E90096C63A /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 8336813E1D02A5E90096C63A /* MainMenu.xib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		6E23171D1D04DDE7002FBCB0 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		8336812E1D02A5DF0096C63A /* AAPLMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AAPLMathUtilities.h; path = MetalTexturedMesh/AAPLMathUtilities.h; sourceTree = "<group>"; };
+		8336812F1D02A5DF0096C63A /* AAPLMathUtilities.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AAPLMathUtilities.m; path = MetalTexturedMesh/AAPLMathUtilities.m; sourceTree = "<group>"; };
+		833681301D02A5DF0096C63A /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MetalTexturedMesh/AppDelegate.swift; sourceTree = "<group>"; };
+		833681311D02A5DF0096C63A /* Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Bridging-Header.h"; path = "MetalTexturedMesh/Bridging-Header.h"; sourceTree = "<group>"; };
+		833681321D02A5DF0096C63A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MetalTexturedMesh/Images.xcassets; sourceTree = "<group>"; };
+		833681331D02A5DF0096C63A /* Mesh.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Mesh.swift; path = MetalTexturedMesh/Mesh.swift; sourceTree = "<group>"; };
+		833681341D02A5DF0096C63A /* Renderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Renderer.swift; path = MetalTexturedMesh/Renderer.swift; sourceTree = "<group>"; };
+		833681351D02A5DF0096C63A /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Shaders.metal; path = MetalTexturedMesh/Shaders.metal; sourceTree = "<group>"; };
+		833681361D02A5DF0096C63A /* ViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewController.swift; path = MetalTexturedMesh/ViewController.swift; sourceTree = "<group>"; };
+		8336813F1D02A5E90096C63A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = MetalTexturedMesh/Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		833681411D02A5F20096C63A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = MetalTexturedMesh/Info.plist; sourceTree = "<group>"; };
+		838E9C321C287FC300A022DD /* MetalTexturedMesh OSX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MetalTexturedMesh OSX.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		838E9C2F1C287FC300A022DD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		838E9C291C287FC300A022DD = {
+			isa = PBXGroup;
+			children = (
+				6E23171D1D04DDE7002FBCB0 /* README.md */,
+				838E9C671C28817700A022DD /* MetalTexturedMesh */,
+				838E9C331C287FC300A022DD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		838E9C331C287FC300A022DD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				838E9C321C287FC300A022DD /* MetalTexturedMesh OSX.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		838E9C671C28817700A022DD /* MetalTexturedMesh */ = {
+			isa = PBXGroup;
+			children = (
+				833681311D02A5DF0096C63A /* Bridging-Header.h */,
+				8336812E1D02A5DF0096C63A /* AAPLMathUtilities.h */,
+				8336812F1D02A5DF0096C63A /* AAPLMathUtilities.m */,
+				833681301D02A5DF0096C63A /* AppDelegate.swift */,
+				833681331D02A5DF0096C63A /* Mesh.swift */,
+				833681341D02A5DF0096C63A /* Renderer.swift */,
+				833681361D02A5DF0096C63A /* ViewController.swift */,
+				833681351D02A5DF0096C63A /* Shaders.metal */,
+				833681321D02A5DF0096C63A /* Images.xcassets */,
+				8336813E1D02A5E90096C63A /* MainMenu.xib */,
+				833681411D02A5F20096C63A /* Info.plist */,
+			);
+			name = MetalTexturedMesh;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		838E9C311C287FC300A022DD /* MetalTexturedMesh OSX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 838E9C491C287FC300A022DD /* Build configuration list for PBXNativeTarget "MetalTexturedMesh OSX" */;
+			buildPhases = (
+				838E9C2E1C287FC300A022DD /* Sources */,
+				838E9C2F1C287FC300A022DD /* Frameworks */,
+				838E9C301C287FC300A022DD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "MetalTexturedMesh OSX";
+			productName = MetalTemplate;
+			productReference = 838E9C321C287FC300A022DD /* MetalTexturedMesh OSX.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		838E9C2A1C287FC300A022DD /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0800;
+				ORGANIZATIONNAME = "Apple, Inc.";
+				TargetAttributes = {
+					838E9C311C287FC300A022DD = {
+						CreatedOnToolsVersion = 7.3;
+						DevelopmentTeam = 4P3Z7HWQQE;
+						LastSwiftMigration = 0800;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 838E9C2D1C287FC300A022DD /* Build configuration list for PBXProject "MetalTexturedMesh" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 838E9C291C287FC300A022DD;
+			productRefGroup = 838E9C331C287FC300A022DD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				838E9C311C287FC300A022DD /* MetalTexturedMesh OSX */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		838E9C301C287FC300A022DD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				833681391D02A5DF0096C63A /* Images.xcassets in Resources */,
+				833681401D02A5E90096C63A /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		838E9C2E1C287FC300A022DD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				833681381D02A5DF0096C63A /* AppDelegate.swift in Sources */,
+				833681371D02A5DF0096C63A /* AAPLMathUtilities.m in Sources */,
+				8336813D1D02A5DF0096C63A /* ViewController.swift in Sources */,
+				8336813A1D02A5DF0096C63A /* Mesh.swift in Sources */,
+				8336813C1D02A5DF0096C63A /* Shaders.metal in Sources */,
+				8336813B1D02A5DF0096C63A /* Renderer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		8336813E1D02A5E90096C63A /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				8336813F1D02A5E90096C63A /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		838E9C471C287FC300A022DD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPRESSION = lossless;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		838E9C481C287FC300A022DD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPRESSION = "respect-asset-catalog";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		838E9C4A1C287FC300A022DD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 4P3Z7HWQQE;
+				INFOPLIST_FILE = "$(SRCROOT)/MetalTexturedMesh/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.apple-samplecode.MetalHillside";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "MetalTexturedMesh/Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Debug;
+		};
+		838E9C4B1C287FC300A022DD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 4P3Z7HWQQE;
+				INFOPLIST_FILE = "$(SRCROOT)/MetalTexturedMesh/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.example.apple-samplecode.MetalHillside";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "MetalTexturedMesh/Bridging-Header.h";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		838E9C2D1C287FC300A022DD /* Build configuration list for PBXProject "MetalTexturedMesh" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				838E9C471C287FC300A022DD /* Debug */,
+				838E9C481C287FC300A022DD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		838E9C491C287FC300A022DD /* Build configuration list for PBXNativeTarget "MetalTexturedMesh OSX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				838E9C4A1C287FC300A022DD /* Debug */,
+				838E9C4B1C287FC300A022DD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 838E9C2A1C287FC300A022DD /* Project object */;
+}
