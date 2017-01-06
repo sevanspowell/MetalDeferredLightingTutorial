@@ -32,6 +32,45 @@ struct VertexOut {
     float4 worldPosition;
 };
 
+struct StencilPassOut {
+    float4 position [[position]];
+};
+
+vertex StencilPassOut stencilPassVert(const device VertexIn *vertices [[buffer(0)]],
+                                      const device Constants &uniforms [[buffer(1)]],
+                                      unsigned int vid [[vertex_id]]) {
+    StencilPassOut out;
+    
+    out.position = uniforms.modelViewProjectionMatrix * float4(vertices[vid].position, 1.0);
+    
+    return out;
+}
+
+fragment void stencilPassNullFrag(StencilPassOut in [[stage_in]])
+{
+}
+
+struct LightFragmentInput {
+    float2 screenSize;
+};
+
+fragment float4 lightVolumeFrag(StencilPassOut in [[stage_in]],
+                                constant LightFragmentInput *lightData [[ buffer(0) ]],
+                                texture2d<float> albedoTexture [[ texture(0) ]],
+                                texture2d<float> normalsTexture [[ texture(1) ]],
+                                texture2d<float> positionTexture [[ texture(2) ]])
+{
+    // We sample albedo, normals and position from the position of this fragment, normalized to be 0-1 within screen space
+    float2 sampleCoords = in.position.xy / lightData->screenSize;
+    
+    constexpr sampler texSampler;
+    
+    float3 albedo = float3(0.5) * float3(albedoTexture.sample(texSampler, sampleCoords));
+
+    float3 gammaCorrect = pow(albedo, (1.0/2.2));
+    return float4(gammaCorrect, 1.0);
+}
+
 struct GBufferOut {
     float4 albedo [[color(0)]];
     float4 normal [[color(1)]];

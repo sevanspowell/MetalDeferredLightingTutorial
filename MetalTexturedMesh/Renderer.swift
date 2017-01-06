@@ -16,6 +16,15 @@ struct Constants {
     var modelMatrix = matrix_identity_float4x4
 }
 
+struct PointLight {
+    var worldPosition = float3(0.0, 0.0, 0.0)
+    var radius = Float(1.0)
+}
+
+struct LightFragmentInput {
+    var screenSize = float2(1, 1)
+}
+
 @objc
 class Renderer : NSObject, MTKViewDelegate
 {
@@ -40,7 +49,22 @@ class Renderer : NSObject, MTKViewDelegate
     var gBufferRenderPassDescriptor: MTLRenderPassDescriptor
     let gBufferRenderPipeline: MTLRenderPipelineState
 
+    let lightSphere: Mesh
+    let lightNumber = 2
+    var lightConstants = [Constants]()
+    var lightProperties = [PointLight]()
+    var lightFragmentInput = LightFragmentInput()
     
+    let stencilPassDepthStencilState: MTLDepthStencilState
+    let stencilRenderPassDescriptor: MTLRenderPassDescriptor
+    let stencilRenderPipeline: MTLRenderPipelineState
+    
+    let lightVolumeDepthStencilState: MTLDepthStencilState
+    var lightVolumeRenderPassDescriptor: MTLRenderPassDescriptor = MTLRenderPassDescriptor()
+    let lightVolumeRenderPipeline: MTLRenderPipelineState
+    // The final texture we'll blit to the screen
+    var compositeTexture: MTLTexture
+
     init?(mtkView: MTKView) {
         
         view = mtkView
@@ -91,12 +115,13 @@ class Renderer : NSObject, MTKViewDelegate
         // Make a texture sampler that wraps in both directions and performs bilinear filtering
         sampler = Renderer.buildSamplerStateWithDevice(device, addressMode: .repeat, filter: .linear)
         
-        // ...
         // To be used for the size of the render textures
         let drawableWidth = Int(self.view.drawableSize.width)
         let drawableHeight = Int(self.view.drawableSize.height)
         // We create our shaders from here
         let library = device.newDefaultLibrary()!
+        
+        // ---- BEGIN GBUFFER PASS PREP ---- //
         
         // Create GBuffer albedo texture
         // First we create a descriptor that describes the texture we're about to create
@@ -127,8 +152,8 @@ class Renderer : NSObject, MTKViewDelegate
         
         gBufferPositionTexture = device.makeTexture(descriptor: gBufferPositionTextureDescriptor)
         
-        // Create GBuffer depth texture
-        let gBufferDepthDesc: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .depth32Float, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        // Create GBuffer depth (and stencil) texture
+        let gBufferDepthDesc: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .depth32Float_stencil8, width: drawableWidth, height: drawableHeight, mipmapped: false)
         gBufferDepthDesc.sampleCount = 1
         gBufferDepthDesc.storageMode = .private
         gBufferDepthDesc.textureType = .type2D
@@ -174,6 +199,15 @@ class Renderer : NSObject, MTKViewDelegate
         // Create GBuffer render pipeline
         let gBufferRenderPipelineDesc = MTLRenderPipelineDescriptor()
         gBufferRenderPipelineDesc.colorAttachments[0].pixelFormat = .rgba8Unorm
+        
+        gBufferRenderPipelineDesc.colorAttachments[0].isBlendingEnabled = true
+        gBufferRenderPipelineDesc.colorAttachments[0].rgbBlendOperation = .add
+        gBufferRenderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = .one
+        gBufferRenderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor = .one
+        gBufferRenderPipelineDesc.colorAttachments[0].alphaBlendOperation = .add
+        gBufferRenderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor = .one
+        gBufferRenderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = .one
+        
         gBufferRenderPipelineDesc.colorAttachments[1].pixelFormat = .rgba16Float
         gBufferRenderPipelineDesc.colorAttachments[2].pixelFormat = .rgba16Float
         gBufferRenderPipelineDesc.depthAttachmentPixelFormat = .depth32Float_stencil8
@@ -187,6 +221,160 @@ class Renderer : NSObject, MTKViewDelegate
         } catch let error {
             fatalError("Failed to create GBuffer pipeline state, error \(error)")
         }
+        
+        // ---- END GBUFFER PASS PREP ---- //
+
+        lightSphere = Mesh(sphereWithSize: 1.0, device: device)!
+        
+        // Add space for each light's data
+        for _ in 0...(lightNumber - 1) {
+            lightProperties.append(PointLight())
+            lightConstants.append(Constants())
+        }
+        
+        // Hard-code position and radius
+        lightProperties[0].worldPosition = float3(0.0, 0.4, 0.0)
+        lightProperties[0].radius = 0.7
+        
+        lightProperties[1].worldPosition = float3(-0.4, 0.0, 0.0)
+        lightProperties[1].radius = 0.6
+
+        // ---- BEGIN STENCIL PASS PREP ---- //
+        
+        /* Be very careful with these operations, I clear the stencil buffer to a value of 0, so it's
+         * very important that I set the depthFailureOperation to 'decrementWRAP' and 'incrementWRAP'
+         * for the front and back face stencil operations (respectively) rather than 'decrementClamp'
+         * and 'incrementClamp'. This is because we don't know in which order these operations will
+         * occur. Let's say we use clamping:
+         *
+         * - Back then front order - two failures, expected stencil buffer value: 0
+         * - Stencil buffer starts at 0
+         * - Back face depth test fails first: stencil buffer incremented to 1
+         * - Front face depth test fails second: stencil buffer decremented to 0
+         * - Stencil buffer final value = 0 (== expected value) - all good!
+         *
+         * - Front then back order - two failures, expected stencil buffer value: 0
+         * - Stencil buffer starts at 0
+         * - Front face depth test fails first: stencil buffer decremented and clamped to 0
+         * - Back face depth test fails second: stencil buffer incremented to 1
+         * - Stencil buffer final value = 1 (!= expected value) - problem here!
+         *
+         * Wrapping does not have this issue. There are of course other ways to avoid this problem.
+         */
+        // Decrement when front faces depth fail
+        let frontFaceStencilOp: MTLStencilDescriptor = MTLStencilDescriptor()
+        frontFaceStencilOp.stencilCompareFunction = .always        // Stencil test always succeeds, only concerned about depth test
+        frontFaceStencilOp.stencilFailureOperation = .keep         // Stencil test always succeeds
+        frontFaceStencilOp.depthStencilPassOperation = .keep       // Do nothing if depth test passes
+        frontFaceStencilOp.depthFailureOperation = .decrementWrap // Decrement if depth test fails
+        
+        // Increment when back faces depth fail
+        let backFaceStencilOp: MTLStencilDescriptor = MTLStencilDescriptor()
+        backFaceStencilOp.stencilCompareFunction = .always        // Stencil test always succeeds, only concerned about depth test
+        backFaceStencilOp.stencilFailureOperation = .keep         // Stencil test always succeeds
+        backFaceStencilOp.depthStencilPassOperation = .keep       // Do nothing if depth test passes
+        backFaceStencilOp.depthFailureOperation = .incrementWrap // Increment if depth test fails
+        
+        let stencilPassDepthStencilStateDesc: MTLDepthStencilDescriptor = MTLDepthStencilDescriptor()
+        stencilPassDepthStencilStateDesc.isDepthWriteEnabled = false           // Only concerned with modifying stencil buffer
+        stencilPassDepthStencilStateDesc.depthCompareFunction = .lessEqual     // Only perform stencil op when depth function fails
+        stencilPassDepthStencilStateDesc.frontFaceStencil = frontFaceStencilOp // For front-facing polygons
+        stencilPassDepthStencilStateDesc.backFaceStencil = backFaceStencilOp   // For back-facing polygons
+        stencilPassDepthStencilState = device.makeDepthStencilState(descriptor: stencilPassDepthStencilStateDesc)
+
+        let stencilRenderPipelineDesc = MTLRenderPipelineDescriptor()
+        stencilRenderPipelineDesc.label = "Stencil Pipeline"
+        stencilRenderPipelineDesc.sampleCount = view.sampleCount
+        stencilRenderPipelineDesc.vertexFunction = library.makeFunction(name: "stencilPassVert")
+        stencilRenderPipelineDesc.fragmentFunction = library.makeFunction(name: "stencilPassNullFrag")
+        stencilRenderPipelineDesc.depthAttachmentPixelFormat = .depth32Float_stencil8
+        stencilRenderPipelineDesc.stencilAttachmentPixelFormat = .depth32Float_stencil8
+        do {
+            try stencilRenderPipeline = device.makeRenderPipelineState(descriptor: stencilRenderPipelineDesc)
+        } catch let error {
+            fatalError("Failed to create Stencil pipeline state, error \(error)")
+        }
+        
+        stencilRenderPassDescriptor = MTLRenderPassDescriptor()
+        stencilRenderPassDescriptor.depthAttachment.loadAction = .load      // Load up depth information from GBuffer pass
+        stencilRenderPassDescriptor.depthAttachment.storeAction = .store    // We'll use depth information in later passes
+        stencilRenderPassDescriptor.depthAttachment.texture = gBufferDepthTexture
+        stencilRenderPassDescriptor.stencilAttachment.loadAction = .clear   // Contents of stencil buffer unkown at this point, clear it
+        stencilRenderPassDescriptor.stencilAttachment.storeAction = .store  // Store the stencil buffer so that the next pass can use it
+        stencilRenderPassDescriptor.stencilAttachment.texture = gBufferDepthTexture
+        
+        // ---- END STENCIL PASS  PREP ---- //
+        
+        // ---- BEGIN LIGHTING PASS PREP ---- //
+        
+        lightFragmentInput.screenSize.x = Float(view.drawableSize.width)
+        lightFragmentInput.screenSize.y = Float(view.drawableSize.height)
+        
+        // Create composite texture
+        let compositeTextureDescriptor: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        compositeTextureDescriptor.sampleCount = 1
+        compositeTextureDescriptor.storageMode = .private
+        compositeTextureDescriptor.textureType = .type2D
+        compositeTextureDescriptor.usage = [.renderTarget]
+        
+        compositeTexture = device.makeTexture(descriptor: compositeTextureDescriptor)
+        
+        // Build light volume depth-stencil state
+        let lightVolumeStencilOp: MTLStencilDescriptor = MTLStencilDescriptor()
+        lightVolumeStencilOp.stencilCompareFunction = .notEqual           // Only pass if not equal to reference value (ref. value is 0 by default)
+        lightVolumeStencilOp.stencilFailureOperation = .keep              // Don't modify stencil value at all
+        lightVolumeStencilOp.depthStencilPassOperation = .keep
+        lightVolumeStencilOp.depthFailureOperation = .keep                // Depth test is set to always succeed
+        
+        let lightVolumeDepthStencilStateDesc: MTLDepthStencilDescriptor = MTLDepthStencilDescriptor()
+        lightVolumeDepthStencilStateDesc.isDepthWriteEnabled = false       // Don't modify depth buffer
+        lightVolumeDepthStencilStateDesc.depthCompareFunction = .always // Stencil buffer will be used to determine if we should light this fragment, ignore depth value (always pass)
+        lightVolumeDepthStencilStateDesc.backFaceStencil = lightVolumeStencilOp
+        lightVolumeDepthStencilStateDesc.frontFaceStencil = lightVolumeStencilOp
+        lightVolumeDepthStencilState = device.makeDepthStencilState(descriptor: lightVolumeDepthStencilStateDesc)
+        
+        // Build light volume render pass descriptor
+        // Get current render pass descriptor instead
+        lightVolumeRenderPassDescriptor = MTLRenderPassDescriptor()
+        lightVolumeRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1)
+        lightVolumeRenderPassDescriptor.colorAttachments[0].texture = compositeTexture
+        lightVolumeRenderPassDescriptor.colorAttachments[0].loadAction = .clear
+        lightVolumeRenderPassDescriptor.colorAttachments[0].storeAction = .store // Store for blitting
+        lightVolumeRenderPassDescriptor.depthAttachment.clearDepth = 1.0
+        // Aren't using depth
+        /*
+        lightVolumeRenderPassDescriptor.depthAttachment.loadAction = .load
+        lightVolumeRenderPassDescriptor.depthAttachment.storeAction = .store
+        lightVolumeRenderPassDescriptor.depthAttachment.texture = gBufferDepthTexture
+        */
+        lightVolumeRenderPassDescriptor.stencilAttachment.loadAction = .load
+        lightVolumeRenderPassDescriptor.stencilAttachment.storeAction = .dontCare // Aren't using stencil buffer after this point
+        lightVolumeRenderPassDescriptor.stencilAttachment.texture = gBufferDepthTexture
+        
+        // Build light volume render pipeline
+        let lightVolumeRenderPipelineDesc = MTLRenderPipelineDescriptor()
+        lightVolumeRenderPipelineDesc.colorAttachments[0].pixelFormat = .bgra8Unorm
+        // We need to enable blending as each light volume is additive (it 'adds' to the contribution of the previous one)
+        lightVolumeRenderPipelineDesc.colorAttachments[0].isBlendingEnabled = true
+        lightVolumeRenderPipelineDesc.colorAttachments[0].rgbBlendOperation = .add
+        lightVolumeRenderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = .one
+        lightVolumeRenderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor = .one
+        lightVolumeRenderPipelineDesc.colorAttachments[0].alphaBlendOperation = .add
+        lightVolumeRenderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor = .one
+        lightVolumeRenderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = .one
+        lightVolumeRenderPipelineDesc.depthAttachmentPixelFormat = .depth32Float_stencil8
+        lightVolumeRenderPipelineDesc.stencilAttachmentPixelFormat = .depth32Float_stencil8
+        lightVolumeRenderPipelineDesc.sampleCount = 1
+        lightVolumeRenderPipelineDesc.label = "Light Volume Render"
+        lightVolumeRenderPipelineDesc.vertexFunction = library.makeFunction(name: "stencilPassVert")
+        lightVolumeRenderPipelineDesc.fragmentFunction = library.makeFunction(name: "lightVolumeFrag")
+        do {
+            try lightVolumeRenderPipeline = device.makeRenderPipelineState(descriptor: lightVolumeRenderPipelineDesc)
+        } catch let error {
+            fatalError("Failed to create lightVolume pipeline state, error \(error)")
+        }
+
+        // ---- END LIGHTING PASS PREP ---- //
 
         
         super.init()
@@ -272,6 +460,15 @@ class Renderer : NSObject, MTKViewDelegate
         constants.modelViewProjectionMatrix = matrix_multiply(projectionMatrix, mvMatrix)
         constants.normalMatrix = matrix_inverse_transpose(matrix_upper_left_3x3(mvMatrix))
         constants.modelMatrix = modelToWorldMatrix
+        
+        // Update light constants
+        for i in 0...(lightNumber-1) {
+            let lightModelToWorldMatrix = matrix_multiply(matrix4x4_translation(lightProperties[i].worldPosition.x, lightProperties[i].worldPosition.y, lightProperties[i].worldPosition.z), matrix4x4_scale(vector3(lightProperties[i].radius, lightProperties[i].radius, lightProperties[i].radius)))
+            let lightMvMatrix = matrix_multiply(viewMatrix, lightModelToWorldMatrix);
+            lightConstants[i].modelViewProjectionMatrix = matrix_multiply(projectionMatrix, lightMvMatrix)
+            lightConstants[i].normalMatrix = matrix_inverse_transpose(matrix_upper_left_3x3(lightMvMatrix))
+            lightConstants[i].modelMatrix = lightModelToWorldMatrix;
+        }
     }
 
     func render(_ view: MTKView) {
@@ -304,17 +501,62 @@ class Renderer : NSObject, MTKViewDelegate
         gBufferEncoder.setVertexBytes(&constants, length: MemoryLayout<Constants>.size, at: 1)
         // Bind the checkerboard texture (for the cube)
         gBufferEncoder.setFragmentTexture(texture, at: 0)
-        // Bind the sampler used to sample the above texture
-        gBufferEncoder.setFragmentSamplerState(sampler, at: 0)
         // Draw our mesh
         gBufferEncoder.drawIndexedPrimitives(type: mesh.primitiveType,
-                                             indexCount: mesh.indexCount,
-                                             indexType: mesh.indexType,
-                                             indexBuffer: mesh.indexBuffer,
-                                             indexBufferOffset: 0)
+                                              indexCount: mesh.indexCount,
+                                              indexType: mesh.indexType,
+                                              indexBuffer: mesh.indexBuffer,
+                                              indexBufferOffset: 0)
         gBufferEncoder.popDebugGroup() // For debugging
         // Finish encoding commands in this encoder
         gBufferEncoder.endEncoding()
+        
+        // ---- STENCIL ---- //
+        let stencilPassEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: stencilRenderPassDescriptor)
+        stencilPassEncoder.pushDebugGroup("Stencil Pass")
+        stencilPassEncoder.label = "Stencil Pass"
+        stencilPassEncoder.setDepthStencilState(stencilPassDepthStencilState)
+        // We want to draw back-facing AND front-facing polygons
+        stencilPassEncoder.setCullMode(.none)
+        stencilPassEncoder.setFrontFacing(.counterClockwise)
+        stencilPassEncoder.setRenderPipelineState(stencilRenderPipeline)
+        stencilPassEncoder.setVertexBuffer(lightSphere.vertexBuffer, offset:0, at:0)
+        
+        for i in 0...(lightNumber-1) {
+            stencilPassEncoder.setVertexBytes(&lightConstants[i], length: MemoryLayout<Constants>.size, at: 1)
+            stencilPassEncoder.drawIndexedPrimitives(type: lightSphere.primitiveType, indexCount: lightSphere.indexCount, indexType: lightSphere.indexType, indexBuffer: lightSphere.indexBuffer, indexBufferOffset: 0)
+        }
+        
+        stencilPassEncoder.popDebugGroup()
+        stencilPassEncoder.endEncoding()
+        
+        // ---- LIGHTING ---- //
+        let lightPassEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: lightVolumeRenderPassDescriptor)
+        lightPassEncoder.pushDebugGroup("Light Volume Pass")
+        lightPassEncoder.label = "Light Volume Pass"
+        // Use our previously configured depth stencil state
+        lightPassEncoder.setDepthStencilState(lightVolumeDepthStencilState)
+        // Set our stencil reference value to 0 (in the depth stencil state we configured fragments to pass only if they are NOT EQUAL to the reference value
+        lightPassEncoder.setStencilReferenceValue(0)
+        // We cull the front of the spherical light volume and not the back, in-case we are inside the light volume. I'm not 100% certain this is the best way to do this, but it seems to work.
+        lightPassEncoder.setCullMode(.front)
+        lightPassEncoder.setFrontFacing(.counterClockwise)
+        lightPassEncoder.setRenderPipelineState(lightVolumeRenderPipeline)
+        // Bind our GBuffer textures
+        lightPassEncoder.setFragmentTexture(gBufferAlbedoTexture, at: 0)
+        lightPassEncoder.setFragmentTexture(gBufferNormalTexture, at: 1)
+        lightPassEncoder.setFragmentTexture(gBufferPositionTexture, at: 2)
+        lightPassEncoder.setVertexBuffer(lightSphere.vertexBuffer, offset:0, at:0)
+        // Upload our screen size
+        lightPassEncoder.setFragmentBytes(&lightFragmentInput, length: MemoryLayout<LightFragmentInput>.size, at: 0)
+        // Render light volumes
+        for i in 0...(lightNumber - 1) {
+            lightPassEncoder.setVertexBytes(&lightConstants[i], length: MemoryLayout<Constants>.size, at: 1)
+            lightPassEncoder.drawIndexedPrimitives(type: lightSphere.primitiveType, indexCount: lightSphere.indexCount, indexType: lightSphere.indexType, indexBuffer: lightSphere.indexBuffer, indexBufferOffset: 0)
+        }
+        
+        lightPassEncoder.popDebugGroup()
+        lightPassEncoder.endEncoding()
         
         // ---- BLIT ---- //
         // Blit our texture to the screen
@@ -327,7 +569,7 @@ class Renderer : NSObject, MTKViewDelegate
         
         // Encode copy command, copying from our albedo texture to the 'current drawable' texture
         // The 'current drawable' is essentially a render target that can be displayed on the screen
-        blitEncoder.copy(from: gBufferPositionTexture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: origin, sourceSize: size, to: (currDrawable?.texture)!, destinationSlice: 0, destinationLevel: 0, destinationOrigin: origin)
+        blitEncoder.copy(from: compositeTexture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: origin, sourceSize: size, to: (currDrawable?.texture)!, destinationSlice: 0, destinationLevel: 0, destinationOrigin: origin)
         
         blitEncoder.endEncoding()
         blitEncoder.popDebugGroup()

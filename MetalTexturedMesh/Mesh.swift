@@ -49,4 +49,31 @@ class Mesh {
             return nil // Unable to create MTK mesh from MDL mesh
         }
     }
+    
+    init?(sphereWithSize size: Float, device: MTLDevice)
+    {
+        let allocator = MTKMeshBufferAllocator(device: device)
+        
+        let mdlMesh = MDLMesh(sphereWithExtent: vector_float3(size, size, size), segments: vector_uint2(30, 30), inwardNormals: false, geometryType: .triangles, allocator: allocator)
+        
+        do {
+            let mtkMesh = try MTKMesh(mesh: mdlMesh, device: device)
+            let mtkVertexBuffer = mtkMesh.vertexBuffers[0]
+            let submesh = mtkMesh.submeshes[0]
+            let mtkIndexBuffer = submesh.indexBuffer
+            
+            vertexBuffer = mtkVertexBuffer.buffer
+            vertexBuffer.label = "Mesh Vertices"
+            
+            vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(mdlMesh.vertexDescriptor)
+            primitiveType = submesh.primitiveType
+            indexBuffer = mtkIndexBuffer.buffer
+            indexBuffer.label = "Mesh Indices"
+            
+            indexCount = submesh.indexCount
+            indexType = submesh.indexType
+        } catch _ {
+            return nil // Unable to create MTK mesh from MDL mesh
+        }
+    }
 }
