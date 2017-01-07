@@ -19,10 +19,12 @@ struct Constants {
 struct PointLight {
     var worldPosition = float3(0.0, 0.0, 0.0)
     var radius = Float(1.0)
+    var color = float3(1, 1, 1)
 }
 
 struct LightFragmentInput {
     var screenSize = float2(1, 1)
+    var camWorldPos = float3(0.0, 0.0, 2.5)
 }
 
 @objc
@@ -99,7 +101,7 @@ class Renderer : NSObject, MTKViewDelegate
             return nil
         }
 
-        mesh = Mesh(cubeWithSize: 1.0, device: device)!
+        mesh = Mesh(sphereWithSize: 1.0, device: device)!
         
         do {
             texture = try Renderer.buildTexture(name: "checkerboard", device)
@@ -233,11 +235,13 @@ class Renderer : NSObject, MTKViewDelegate
         }
         
         // Hard-code position and radius
-        lightProperties[0].worldPosition = float3(0.0, 0.4, 0.0)
-        lightProperties[0].radius = 0.7
+        lightProperties[0].worldPosition = float3(1, 1, 1.5)
+        lightProperties[0].radius = 3
+        lightProperties[0].color = float3(1, 0, 0)
         
-        lightProperties[1].worldPosition = float3(-0.4, 0.0, 0.0)
-        lightProperties[1].radius = 0.6
+        lightProperties[1].worldPosition = float3(-1, 1, 1.5)
+        lightProperties[1].radius = 3
+        lightProperties[1].color = float3(0, 1, 0)
 
         // ---- BEGIN STENCIL PASS PREP ---- //
         
@@ -453,7 +457,7 @@ class Renderer : NSObject, MTKViewDelegate
         let farZ: Float = 100.0
         let projectionMatrix = matrix_perspective(verticalViewAngle, aspectRatio, nearZ, farZ)
         
-        let viewMatrix = matrix_look_at(0, 0, 2.5, 0, 0, 0, 0, 1, 0)
+        let viewMatrix = matrix_look_at(lightFragmentInput.camWorldPos.x, lightFragmentInput.camWorldPos.y, lightFragmentInput.camWorldPos.z, 0, 0, 0, 0, 1, 0)
 
         // The combined model-view-projection matrix moves our vertices from model space into clip space
         let mvMatrix = matrix_multiply(viewMatrix, modelToWorldMatrix);
@@ -552,6 +556,7 @@ class Renderer : NSObject, MTKViewDelegate
         // Render light volumes
         for i in 0...(lightNumber - 1) {
             lightPassEncoder.setVertexBytes(&lightConstants[i], length: MemoryLayout<Constants>.size, at: 1)
+            lightPassEncoder.setFragmentBytes(&lightProperties[i], length: MemoryLayout<PointLight>.size, at: 1)
             lightPassEncoder.drawIndexedPrimitives(type: lightSphere.primitiveType, indexCount: lightSphere.indexCount, indexType: lightSphere.indexType, indexBuffer: lightSphere.indexBuffer, indexBufferOffset: 0)
         }
         

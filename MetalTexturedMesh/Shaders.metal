@@ -52,10 +52,18 @@ fragment void stencilPassNullFrag(StencilPassOut in [[stage_in]])
 
 struct LightFragmentInput {
     float2 screenSize;
+    float3 camWorldPos;
+};
+
+struct PointLight {
+    float3 worldPosition;
+    float radius;
+    float3 color;
 };
 
 fragment float4 lightVolumeFrag(StencilPassOut in [[stage_in]],
                                 constant LightFragmentInput *lightData [[ buffer(0) ]],
+                                constant PointLight *pointLight [[ buffer(1) ]],
                                 texture2d<float> albedoTexture [[ texture(0) ]],
                                 texture2d<float> normalsTexture [[ texture(1) ]],
                                 texture2d<float> positionTexture [[ texture(2) ]])
@@ -65,9 +73,26 @@ fragment float4 lightVolumeFrag(StencilPassOut in [[stage_in]],
     
     constexpr sampler texSampler;
     
-    float3 albedo = float3(0.5) * float3(albedoTexture.sample(texSampler, sampleCoords));
+    // Extract data for this fragment from GBuffer textures
+    const float3 albedo = float3(albedoTexture.sample(texSampler, sampleCoords));
+    const float3 worldPosition = float3(positionTexture.sample(texSampler, sampleCoords));
+    const float3 normal = normalize(float3(normalsTexture.sample(texSampler, sampleCoords)));
 
-    float3 gammaCorrect = pow(albedo, (1.0/2.2));
+    const float3 lightDir = normalize(pointLight->worldPosition - worldPosition);
+    
+    // Diffuse
+    const float nDotL = max(dot(normal, lightDir), 0.0);
+    const float3 diffuse = nDotL * albedo * pointLight->color;
+    
+    float3 result = diffuse;
+    
+    // Specular - if you want
+    //const float3 viewDir = normalize(lightData->camWorldPos - worldPosition);
+    //const float3 halfwayDir = normalize(lightDir + viewDir);
+    //const float3 specular = pow(max(dot(normal, halfwayDir), 0.0), 60.0) * 0.2;
+    //result = (diffuse + specular);
+    
+    const float3 gammaCorrect = pow(float3(result), (1.0/2.2));
     return float4(gammaCorrect, 1.0);
 }
 
@@ -103,7 +128,7 @@ fragment GBufferOut gBufferFrag(VertexOut in [[stage_in]],
     
     GBufferOut output;
     
-    output.albedo = albedo;
+    output.albedo = float4(1, 1, 1, 1);
     output.normal = float4(in.normal, 1.0);
     output.position = in.worldPosition;
 
