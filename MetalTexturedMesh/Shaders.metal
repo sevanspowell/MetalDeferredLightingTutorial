@@ -128,7 +128,7 @@ fragment GBufferOut gBufferFrag(VertexOut in [[stage_in]],
     
     GBufferOut output;
     
-    output.albedo = float4(1, 1, 1, 1);
+    output.albedo = albedo;
     output.normal = float4(in.normal, 1.0);
     output.position = in.worldPosition;
 

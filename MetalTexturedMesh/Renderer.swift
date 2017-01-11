@@ -236,11 +236,11 @@ class Renderer : NSObject, MTKViewDelegate
         
         // Hard-code position and radius
         lightProperties[0].worldPosition = float3(1, 1, 1.5)
-        lightProperties[0].radius = 3
+        lightProperties[0].radius = 3.0
         lightProperties[0].color = float3(1, 0, 0)
         
         lightProperties[1].worldPosition = float3(-1, 1, 1.5)
-        lightProperties[1].radius = 3
+        lightProperties[1].radius = 3.0
         lightProperties[1].color = float3(0, 1, 0)
 
         // ---- BEGIN STENCIL PASS PREP ---- //
@@ -444,7 +444,6 @@ class Renderer : NSObject, MTKViewDelegate
     {
         // We keep track of time so we can animate the various transformations
         time = time + timestep
-        //time = 1.3
         let modelToWorldMatrix = matrix4x4_rotation(Float(time) * 0.5, vector_float3(0.7, 1, 0))
         
         // So that the figure doesn't get distorted when the window changes size or rotates,
@@ -550,6 +549,7 @@ class Renderer : NSObject, MTKViewDelegate
         lightPassEncoder.setFragmentTexture(gBufferAlbedoTexture, at: 0)
         lightPassEncoder.setFragmentTexture(gBufferNormalTexture, at: 1)
         lightPassEncoder.setFragmentTexture(gBufferPositionTexture, at: 2)
+        lightPassEncoder.setFragmentTexture(gBufferDepthTexture, at: 3)
         lightPassEncoder.setVertexBuffer(lightSphere.vertexBuffer, offset:0, at:0)
         // Upload our screen size
         lightPassEncoder.setFragmentBytes(&lightFragmentInput, length: MemoryLayout<LightFragmentInput>.size, at: 0)
@@ -591,6 +591,67 @@ class Renderer : NSObject, MTKViewDelegate
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         // respond to resize
+        let drawableWidth = Int(size.width)
+        let drawableHeight = Int(size.height)
+        
+        lightFragmentInput.screenSize.x = Float(size.width)
+        lightFragmentInput.screenSize.y = Float(size.height)
+        
+        // Create resized GBuffer albedo texture
+        let gBufferAlbedoTextureDescriptor: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        gBufferAlbedoTextureDescriptor.sampleCount = 1
+        gBufferAlbedoTextureDescriptor.storageMode = .private
+        gBufferAlbedoTextureDescriptor.textureType = .type2D
+        gBufferAlbedoTextureDescriptor.usage = [.renderTarget, .shaderRead]
+        
+        gBufferAlbedoTexture = device.makeTexture(descriptor: gBufferAlbedoTextureDescriptor)
+        
+        // Create resized GBuffer normal texture
+        let gBufferNormalTextureDescriptor: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba16Float, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        gBufferNormalTextureDescriptor.sampleCount = 1
+        gBufferNormalTextureDescriptor.storageMode = .private
+        gBufferNormalTextureDescriptor.textureType = .type2D
+        gBufferNormalTextureDescriptor.usage = [.renderTarget, .shaderRead]
+        
+        gBufferNormalTexture = device.makeTexture(descriptor: gBufferNormalTextureDescriptor)
+        
+        // Create resized GBuffer position texture
+        let gBufferPositionTextureDescriptor: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba16Float, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        gBufferPositionTextureDescriptor.sampleCount = 1
+        gBufferPositionTextureDescriptor.storageMode = .private
+        gBufferPositionTextureDescriptor.textureType = .type2D
+        gBufferPositionTextureDescriptor.usage = [.renderTarget, .shaderRead]
+        
+        gBufferPositionTexture = device.makeTexture(descriptor: gBufferPositionTextureDescriptor)
+        
+        // Create resized GBuffer depth (and stencil) texture
+        let gBufferDepthDesc: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .depth32Float_stencil8, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        gBufferDepthDesc.sampleCount = 1
+        gBufferDepthDesc.storageMode = .private
+        gBufferDepthDesc.textureType = .type2D
+        gBufferDepthDesc.usage = [.renderTarget, .shaderRead]
+        
+        gBufferDepthTexture = device.makeTexture(descriptor: gBufferDepthDesc)
+        
+        // Create resized composite texture
+        let compositeTextureDescriptor: MTLTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: drawableWidth, height: drawableHeight, mipmapped: false)
+        compositeTextureDescriptor.sampleCount = 1
+        compositeTextureDescriptor.storageMode = .private
+        compositeTextureDescriptor.textureType = .type2D
+        compositeTextureDescriptor.usage = [.renderTarget]
+        
+        compositeTexture = device.makeTexture(descriptor: compositeTextureDescriptor)
+        
+        gBufferRenderPassDescriptor.colorAttachments[0].texture = gBufferAlbedoTexture
+        gBufferRenderPassDescriptor.colorAttachments[1].texture = gBufferNormalTexture
+        gBufferRenderPassDescriptor.colorAttachments[2].texture = gBufferPositionTexture
+        gBufferRenderPassDescriptor.depthAttachment.texture = gBufferDepthTexture
+        
+        stencilRenderPassDescriptor.depthAttachment.texture = gBufferDepthTexture
+        stencilRenderPassDescriptor.stencilAttachment.texture = gBufferDepthTexture
+        
+        lightVolumeRenderPassDescriptor.colorAttachments[0].texture = compositeTexture
+        lightVolumeRenderPassDescriptor.stencilAttachment.texture = gBufferDepthTexture
     }
 
     @objc(drawInMTKView:)
