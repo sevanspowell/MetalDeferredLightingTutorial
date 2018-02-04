@@ -4,4 +4,4 @@
 
 Tutorial source for implementing deferred lighting in Metal.
 
-Tutorial [here](http://sevanspowell.net/posts/implementing-deferred-shading-in-metal.html).
+Tutorial [here](https://github.com/sevanspowell/MetalDeferredLightingTutorial/blob/master/doc/implementing-deferred-shading-in-metal.md).
