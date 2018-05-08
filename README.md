@@ -1,6 +1,6 @@
 # MetalDeferredLightingTutorial
-
-<img src="http://sevanspowell.net/img/posts/implementing-deferred-shading-in-metal/final.png" alt="Lit Sphere"></a>
+final.png
+<img src="http://sevanspowell.blog/img/deferred.png" alt="Lit Sphere"></a>
 
 Tutorial source for implementing deferred lighting in Metal.
 
